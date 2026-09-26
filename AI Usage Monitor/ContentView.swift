@@ -193,7 +193,7 @@ struct ContentView: View {
                         HStack(spacing: 4) {
                             Text("\(Int(round(quota.remainingPercentage)))%")
                                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(Color.white)
+                                .foregroundStyle(quotaPercentageColor(remainingPercentage: quota.remainingPercentage))
 
                             if let countdown = formattedCountdown(from: quota.resetDate) {
                                 Text("·")
@@ -237,7 +237,7 @@ struct ContentView: View {
                         HStack(spacing: 4) {
                             Text("\(Int(round(quota.remainingPercentage)))%")
                                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(Color.white)
+                                .foregroundStyle(quotaPercentageColor(remainingPercentage: quota.remainingPercentage))
 
                             if let countdown = formattedCountdown(from: quota.resetDate) {
                                 Text("·")
@@ -295,5 +295,9 @@ struct ContentView: View {
         } else {
             return "\(minutes)m"
         }
+    }
+
+    private func quotaPercentageColor(remainingPercentage: Double) -> Color {
+        remainingPercentage <= 20.0 ? ThemeColors.warningYellow : Color.white
     }
 }

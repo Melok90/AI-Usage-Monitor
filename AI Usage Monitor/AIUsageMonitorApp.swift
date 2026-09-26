@@ -27,14 +27,20 @@ struct AIUsageMonitorApp: App {
         MenuBarExtra {
             ContentView(manager: manager)
         } label: {
-            HStack(spacing: 4) {
-                Image(nsImage: MenuBarIconHelper.icon(for: mostConstrainedProviderQuota?.providerId))
-
-                if let quota = mostConstrainedProviderQuota {
-                    Text("\(Int(round(quota.lowestRemainingPercentage)))%")
-                        .font(.system(size: 12, weight: .medium))
-                        .monospacedDigit()
+            if let quota = mostConstrainedProviderQuota {
+                let text = "\(Int(round(quota.lowestRemainingPercentage)))%"
+                if quota.lowestRemainingPercentage <= 20.0 {
+                    Image(nsImage: MenuBarIconHelper.warningItemImage(for: quota.providerId, text: text))
+                } else {
+                    HStack(spacing: 4) {
+                        Image(nsImage: MenuBarIconHelper.icon(for: quota.providerId))
+                        Text(text)
+                            .font(.system(size: 12, weight: .medium))
+                            .monospacedDigit()
+                    }
                 }
+            } else {
+                Image(nsImage: MenuBarIconHelper.defaultAIIcon)
             }
         }
         .menuBarExtraStyle(.window)
@@ -43,6 +49,49 @@ struct AIUsageMonitorApp: App {
 
 private enum MenuBarIconHelper {
     private static var iconCache: [String: NSImage] = [:]
+
+    static func warningItemImage(for providerId: String, text: String) -> NSImage {
+        let cacheKey = "\(providerId)_warning_\(text)"
+        if let cached = iconCache[cacheKey] {
+            return cached
+        }
+
+        let baseIcon = icon(for: providerId)
+        let height: CGFloat = 22
+        let iconSize = NSSize(width: 15, height: 14)
+        let spacing: CGFloat = 4
+
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+        let textAttrs: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: ThemeColors.warningYellowNS
+        ]
+        let str = NSAttributedString(string: text, attributes: textAttrs)
+        let textSize = str.size()
+
+        let totalWidth = iconSize.width + spacing + textSize.width
+        let image = NSImage(size: NSSize(width: totalWidth, height: height))
+        image.lockFocus()
+
+        let iconY = (height - iconSize.height) / 2
+        let iconRect = NSRect(x: 0, y: iconY, width: iconSize.width, height: iconSize.height)
+        let tintedIcon = NSImage(size: iconSize, flipped: false) { rect in
+            baseIcon.draw(in: rect)
+            ThemeColors.warningYellowNS.set()
+            rect.fill(using: .sourceAtop)
+            return true
+        }
+        tintedIcon.draw(in: iconRect)
+
+        let textY = (height - textSize.height) / 2
+        str.draw(at: NSPoint(x: iconSize.width + spacing, y: textY))
+
+        image.unlockFocus()
+        image.isTemplate = false
+
+        iconCache[cacheKey] = image
+        return image
+    }
 
     static func icon(for providerId: String?) -> NSImage {
         guard let providerId = providerId else {
